@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CardGameTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    // THIS IS THE FUNCTION CALL
                     Greeting(
                         name = "Android",
                         modifier = Modifier.padding(innerPadding)
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// THIS IS THE FUNCTION
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
