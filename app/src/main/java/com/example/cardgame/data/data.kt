@@ -29,3 +29,7 @@ fun HandleJSONParsing(Category: String){
         }
     }
 }
+
+class StorePlayerNames(){
+    var names = emptyArray<String>()
+}
