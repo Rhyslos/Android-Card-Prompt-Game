@@ -34,4 +34,7 @@ interface CardDao {
 
     @Query("UPDATE cards SET useCount = 0, isUsed = 0")
     suspend fun resetAllTracking()
+
+    @Query("DELETE FROM cards")
+    suspend fun deleteAllCards()
 }

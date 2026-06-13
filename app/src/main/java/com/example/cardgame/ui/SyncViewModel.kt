@@ -52,6 +52,15 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun wipeDatabase(onDone: () -> Unit) {
+        viewModelScope.launch {
+            dao.deleteAllCards()
+            _hasExistingCards.value = false
+            _debugCards.value = emptyList()
+            onDone()
+        }
+    }
+
     init {
         runSync()
     }

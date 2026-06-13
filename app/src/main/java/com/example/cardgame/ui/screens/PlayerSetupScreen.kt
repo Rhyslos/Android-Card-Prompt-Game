@@ -26,8 +26,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.cardgame.data.PlayerPrefs
 import com.example.cardgame.utils.canAddMorePlayers
 import com.example.cardgame.utils.isValidName
 
@@ -39,13 +41,17 @@ const val MaxPlayers = 12
 
 @Composable
 fun PlayerSetupScreen(modifier: Modifier = Modifier, onContinue: () -> Unit = {}) {
-    val playerNames = remember { mutableStateListOf<String>() }
+    val context = LocalContext.current
+    val playerPrefs = remember { PlayerPrefs(context) }
+    val playerNames = remember { mutableStateListOf(*playerPrefs.getNames().toTypedArray()) }
+
     var currentInput by remember { mutableStateOf("") }
     var isAdding by remember { mutableStateOf(false) }
 
     fun SavePlayerNames() {
         if (isValidName(currentInput)) {
             playerNames.add(currentInput.trim())
+            playerPrefs.saveNames(playerNames.toList())
             currentInput = ""
             isAdding = false
         }
@@ -63,7 +69,10 @@ fun PlayerSetupScreen(modifier: Modifier = Modifier, onContinue: () -> Unit = {}
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(playerNames) { index, name ->
-                PlayerRow(name = name, onRemove = { playerNames.removeAt(index) })
+                PlayerRow(name = name, onRemove = {
+                    playerNames.removeAt(index)
+                    playerPrefs.saveNames(playerNames.toList())
+                })
             }
 
             item {

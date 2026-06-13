@@ -1,8 +1,11 @@
 package com.example.cardgame
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -15,56 +18,102 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.cardgame.data.GameMode
+import com.example.cardgame.ui.GameViewModel
 import com.example.cardgame.ui.SyncStatus
 import com.example.cardgame.ui.SyncViewModel
 import com.example.cardgame.ui.screens.DebugCardListDialog
 import com.example.cardgame.ui.screens.DebugMenuDialog
 import com.example.cardgame.ui.screens.GameModeScreen
+import com.example.cardgame.ui.screens.GameScreen
 import com.example.cardgame.ui.screens.PlayerSetupScreen
 import com.example.cardgame.ui.screens.SyncFailedDialog
 import com.example.cardgame.ui.screens.SyncIndicator
 import com.example.cardgame.ui.screens.WipeConfirmDialog
+import com.example.cardgame.ui.screens.WipeDbConfirmDialog
 import com.example.cardgame.ui.theme.CardGameTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Hide System Bars (Immersive Mode)
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+
         setContent {
             CardGameTheme {
+
                 val context = LocalContext.current
                 val syncViewModel: SyncViewModel = viewModel()
+                val gameViewModel: GameViewModel = viewModel()
+
                 val syncStatus by syncViewModel.syncStatus.collectAsState()
                 val hasExistingCards by syncViewModel.hasExistingCards.collectAsState()
                 val debugCards by syncViewModel.debugCards.collectAsState()
 
-                var currentScreen by remember { mutableStateOf("setup") }
-                var dismissedFailure by remember { mutableStateOf(false) }
+                val currentCard by gameViewModel.currentCard.collectAsState()
+                val isFinished by gameViewModel.isFinished.collectAsState()
 
-                var showDebugMenu by remember { mutableStateOf(false) }
-                var showCardList by remember { mutableStateOf(false) }
-                var showWipeConfirm by remember { mutableStateOf(false) }
+                var currentScreen by rememberSaveable { mutableStateOf("setup") }
+                var dismissedFailure by rememberSaveable { mutableStateOf(false) }
+
+                var showDebugMenu by rememberSaveable { mutableStateOf(false) }
+                var showCardList by rememberSaveable { mutableStateOf(false) }
+                var showWipeConfirm by rememberSaveable { mutableStateOf(false) }
+                var showWipeDbConfirm by rememberSaveable { mutableStateOf(false) }
+
+                LaunchedOrientation(currentScreen)
+
+                BackHandler(enabled = currentScreen != "setup") {
+                    when (currentScreen) {
+                        "gamemode" -> currentScreen = "setup"
+                        "game" -> currentScreen = "gamemode"
+                    }
+                }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.fillMaxSize()) {
 
                         when (currentScreen) {
                             "setup" -> PlayerSetupScreen(
-                                modifier = Modifier.padding(innerPadding),
+                                modifier = Modifier
+                                    .padding(innerPadding)
+                                    .padding(top = 64.dp),
                                 onContinue = { currentScreen = "gamemode" }
                             )
 
                             "gamemode" -> GameModeScreen(
-                                modifier = Modifier.padding(innerPadding),
-                                onGameModeSelected = {}
+                                modifier = Modifier
+                                    .padding(innerPadding)
+                                    .padding(top = 64.dp),
+                                onGameModeSelected = { mode ->
+                                    gameViewModel.startGame(mode)
+                                    currentScreen = "game"
+                                }
+                            )
+
+                            "game" -> GameScreen(
+                                currentCard = currentCard,
+                                isFinished = isFinished,
+                                onNext = { gameViewModel.next() },
+                                onPrevious = { gameViewModel.previous() },
+                                modifier = Modifier.padding(innerPadding)
                             )
                         }
 
@@ -107,6 +156,10 @@ class MainActivity : ComponentActivity() {
                                     showDebugMenu = false
                                     showWipeConfirm = true
                                 },
+                                onWipeDb = {
+                                    showDebugMenu = false
+                                    showWipeDbConfirm = true
+                                },
                                 onDismiss = { showDebugMenu = false }
                             )
                         }
@@ -129,9 +182,36 @@ class MainActivity : ComponentActivity() {
                                 onDismiss = { showWipeConfirm = false }
                             )
                         }
+
+                        if (showWipeDbConfirm) {
+                            WipeDbConfirmDialog(
+                                onConfirm = {
+                                    syncViewModel.wipeDatabase {
+                                        Toast.makeText(context, "Database wiped", Toast.LENGTH_SHORT).show()
+                                    }
+                                    showWipeDbConfirm = false
+                                },
+                                onDismiss = { showWipeDbConfirm = false }
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+// Composable helper functions
+@Composable
+private fun LaunchedOrientation(currentScreen: String) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    LaunchedEffect(currentScreen) {
+        activity?.requestedOrientation = if (currentScreen == "game") {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
     }
 }

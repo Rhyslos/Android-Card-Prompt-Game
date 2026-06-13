@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.cardgame.data.Card
 
@@ -23,6 +24,7 @@ import com.example.cardgame.data.Card
 fun DebugMenuDialog(
     onViewCards: () -> Unit,
     onWipeCounter: () -> Unit,
+    onWipeDb: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -35,6 +37,9 @@ fun DebugMenuDialog(
                 }
                 Button(onClick = onWipeCounter, modifier = Modifier.fillMaxWidth()) {
                     Text("Wipe card counter")
+                }
+                Button(onClick = onWipeDb, modifier = Modifier.fillMaxWidth()) {
+                    Text("Wipe Database")
                 }
             }
         },
@@ -59,6 +64,7 @@ fun DebugCardListDialog(cards: List<Card>, onDismiss: () -> Unit) {
                         Text("ID: ${card.id}  |  ${card.category}")
                         Text("Target: ${card.target}")
                         Text(card.details)
+                        Text("Plays: ${card.useCount}  |  Used: ${card.isUsed}", color = Color.Gray)
                     }
                     HorizontalDivider()
                 }
@@ -70,7 +76,7 @@ fun DebugCardListDialog(cards: List<Card>, onDismiss: () -> Unit) {
     )
 }
 
-// Wipe Confirmation
+// Wipe Confirmations
 
 @Composable
 fun WipeConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
@@ -80,6 +86,21 @@ fun WipeConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         text = { Text("This resets every card's used status and play count to zero.") },
         confirmButton = {
             Button(onClick = onConfirm) { Text("Wipe") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun WipeDbConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Wipe Database?") },
+        text = { Text("This completely deletes all cards from your device. You will need an internet connection to sync them again.") },
+        confirmButton = {
+            Button(onClick = onConfirm) { Text("Wipe DB") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
