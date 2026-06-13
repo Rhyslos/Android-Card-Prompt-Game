@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.cardgame.data.CardDatabase
 import com.example.cardgame.data.fetchRequest
 import com.example.cardgame.data.parseFeed
-import com.example.cardgame.data.surpriseIdOffset
-import com.example.cardgame.data.surpriseSheetUrl
+// import com.example.cardgame.data.surpriseIdOffset
+// import com.example.cardgame.data.surpriseSheetUrl
 import com.example.cardgame.data.testSheetUrl
 import com.example.cardgame.data.toCard
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,10 +47,11 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
                 val mainRaw = fetchRequest(testSheetUrl)
                 val mainCards = parseFeed(mainRaw).map { it.toCard() }
 
-                val surpriseRaw = fetchRequest(surpriseSheetUrl)
-                val surpriseCards = parseFeed(surpriseRaw).map { it.toCard(surpriseIdOffset) }
+                // Surprise sheet disabled during testing (contains real cards)
+                // val surpriseRaw = fetchRequest(surpriseSheetUrl)
+                // val surpriseCards = parseFeed(surpriseRaw).map { it.toCard(surpriseIdOffset) }
 
-                dao.insertNewCards(mainCards + surpriseCards)
+                dao.insertNewCards(mainCards)
                 _hasExistingCards.value = dao.getCardCount() > 0
                 _syncStatus.value = SyncStatus.Success
             } catch (e: Exception) {
