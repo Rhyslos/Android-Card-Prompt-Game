@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cardgame.data.CardDatabase
+import com.example.cardgame.data.Card
 import com.example.cardgame.data.fetchRequest
 import com.example.cardgame.data.parseFeed
 // import com.example.cardgame.data.surpriseIdOffset
@@ -34,6 +35,22 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _hasExistingCards = MutableStateFlow(false)
     val hasExistingCards: StateFlow<Boolean> = _hasExistingCards.asStateFlow()
+
+    private val _debugCards = MutableStateFlow<List<Card>>(emptyList())
+    val debugCards: StateFlow<List<Card>> = _debugCards.asStateFlow()
+
+    fun loadDebugCards() {
+        viewModelScope.launch {
+            _debugCards.value = dao.getAllCards()
+        }
+    }
+
+    fun wipeCardCounter(onDone: () -> Unit) {
+        viewModelScope.launch {
+            dao.resetAllTracking()
+            onDone()
+        }
+    }
 
     init {
         runSync()

@@ -1,6 +1,6 @@
 package com.example.cardgame.data
 
-// Per-Category Caps
+// Per-Category Caps (used by Splash)
 // Change the numbers here to control how many cards each category contributes to the pool.
 // Categories not listed use defaultCategoryCap.
 
@@ -19,20 +19,3 @@ val categoryCaps: Map<String, Int> = mapOf(
     "Two Truths & A Lie" to 3,
     "Would I Lie To You" to 3
 )
-
-// Pool Builder
-
-suspend fun buildMainPool(dao: CardDao): List<Card> {
-    val pool = mutableListOf<Card>()
-
-    val categories = dao.getAllCards().map { it.category }.distinct()
-
-    for (category in categories) {
-        val cap = categoryCaps[category] ?: defaultCategoryCap
-        val unused = dao.getUnusedCardsByCategory(category)
-        val picked = unused.shuffled().take(cap)
-        pool.addAll(picked)
-    }
-
-    return pool.shuffled()
-}
