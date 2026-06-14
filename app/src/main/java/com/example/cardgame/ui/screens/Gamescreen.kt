@@ -1,5 +1,6 @@
 package com.example.cardgame.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cardgame.data.Card
 import com.example.cardgame.data.toDisplay
+import com.example.cardgame.ui.theme.colorForCategory
 import kotlinx.coroutines.launch
 
 // Layout Anchors
@@ -42,8 +45,8 @@ private val categoryTopPadding = 40.dp
 private val textTopAnchor = 120.dp
 
 // Tap Zone Colors
-private val nextZoneColor = Color(0x3300FF00)
-private val prevZoneColor = Color(0x33FF0000)
+private val nextZoneColor = Color(0x33888888)
+private val prevZoneColor = Color(0x33888888)
 
 // Flash feedback timing
 private const val flashFadeMillis = 450
@@ -110,7 +113,19 @@ fun GameScreen(
     val rightFlash = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // Animated background color per category
+    val targetColor = colorForCategory(display?.category)
+    val backgroundColor by animateColorAsState(
+        targetValue = targetColor,
+        animationSpec = tween(durationMillis = 500),
+        label = "bgColor"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+    ) {
 
         // Card content: category fixed near top, text anchored below
         Column(
