@@ -16,12 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.cardgame.data.GameMode
-import com.example.cardgame.data.allGameModes
 
 // Screen
 
 @Composable
 fun GameModeScreen(
+    gameModes: List<GameMode>,
     modifier: Modifier = Modifier,
     onGameModeSelected: (GameMode) -> Unit = {}
 ) {
@@ -33,7 +33,7 @@ fun GameModeScreen(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(allGameModes) { mode ->
+        items(gameModes) { mode ->
             GameModeBox(mode = mode, onClick = { onGameModeSelected(mode) })
         }
     }

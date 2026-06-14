@@ -2,6 +2,7 @@ package com.example.cardgame.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -10,9 +11,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -22,21 +25,43 @@ import com.example.cardgame.data.Card
 
 @Composable
 fun DebugMenuDialog(
+    showTapZones: Boolean,
+    onToggleTapZones: (Boolean) -> Unit,
     onViewCards: () -> Unit,
     onWipeCounter: () -> Unit,
     onWipeDb: () -> Unit,
+    onClearPlayerCache: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Debug") },
+        title = { Text("Debug Menu") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                // Tap Zone Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Show Tap Zones")
+                    Switch(
+                        checked = showTapZones,
+                        onCheckedChange = onToggleTapZones
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
                 Button(onClick = onViewCards, modifier = Modifier.fillMaxWidth()) {
                     Text("View all cards")
                 }
+                Button(onClick = onClearPlayerCache, modifier = Modifier.fillMaxWidth()) {
+                    Text("Wipe Saved Players")
+                }
                 Button(onClick = onWipeCounter, modifier = Modifier.fillMaxWidth()) {
-                    Text("Wipe card counter")
+                    Text("Wipe Card Counter")
                 }
                 Button(onClick = onWipeDb, modifier = Modifier.fillMaxWidth()) {
                     Text("Wipe Database")

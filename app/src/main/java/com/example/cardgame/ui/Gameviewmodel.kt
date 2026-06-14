@@ -5,7 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cardgame.data.Card
 import com.example.cardgame.data.CardDatabase
+import com.example.cardgame.data.GameConfig
 import com.example.cardgame.data.GameMode
+import com.example.cardgame.data.PoolResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,19 +30,69 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val _isFinished = MutableStateFlow(false)
     val isFinished: StateFlow<Boolean> = _isFinished.asStateFlow()
 
-    fun startGame(mode: GameMode) {
+    // Signals the game has actually begun (deck loaded), for navigation.
+    private val _gameStarted = MutableStateFlow(false)
+    val gameStarted: StateFlow<Boolean> = _gameStarted.asStateFlow()
+
+    // Pending pool awaiting confirmation (when there are shortfalls)
+    private val _pendingShortfalls = MutableStateFlow<List<String>>(emptyList())
+    val pendingShortfalls: StateFlow<List<String>> = _pendingShortfalls.asStateFlow()
+
+    private var pendingDeck: List<Card> = emptyList()
+
+    // Categories present in the DB, for building the dynamic gamemode grid.
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+
+    fun loadCategories() {
         viewModelScope.launch {
-            val pool = mode.buildPool(dao)
-            _deck.value = pool
-            _currentIndex.value = 0
-            _isFinished.value = pool.isEmpty()
-            _currentCard.value = pool.firstOrNull()
+            _categories.value = dao.getAllCards().map { it.category }.distinct()
         }
+    }
+
+    // Build the pool. If shortfalls exist, hold the deck and expose them for a warning.
+    // Otherwise start immediately. Stage 1: config is default (no popups yet).
+    fun prepareGame(mode: GameMode, config: GameConfig = GameConfig()) {
+        viewModelScope.launch {
+            val result: PoolResult = mode.buildPool(dao, config)
+            if (result.shortfalls.isNotEmpty()) {
+                pendingDeck = result.deck
+                _pendingShortfalls.value = result.shortfalls
+            } else {
+                beginWith(result.deck)
+            }
+        }
+    }
+
+    // Called when the user confirms "play anyway" after a shortfall warning.
+    fun confirmPendingGame() {
+        beginWith(pendingDeck)
+        _pendingShortfalls.value = emptyList()
+        pendingDeck = emptyList()
+    }
+
+    // Called when the user backs out of the shortfall warning.
+    fun cancelPendingGame() {
+        _pendingShortfalls.value = emptyList()
+        pendingDeck = emptyList()
+    }
+
+    private fun beginWith(pool: List<Card>) {
+        _deck.value = pool
+        _currentIndex.value = 0
+        _isFinished.value = pool.isEmpty()
+        _currentCard.value = pool.firstOrNull()
+        _gameStarted.value = true
+    }
+
+    // Reset the started flag when leaving the game screen.
+    fun clearGameStarted() {
+        _gameStarted.value = false
     }
 
     fun next() {
         val deck = _deck.value
-        if (deck.isEmpty()) return
+        if (deck.isEmpty() || _isFinished.value) return
 
         val leaving = deck.getOrNull(_currentIndex.value)
         if (leaving != null) {
