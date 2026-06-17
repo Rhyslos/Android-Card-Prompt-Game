@@ -50,17 +50,25 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Build the pool. If shortfalls exist, hold the deck and expose them for a warning.
-    // Otherwise start immediately. Stage 1: config is default (no popups yet).
-    fun prepareGame(mode: GameMode, config: GameConfig = GameConfig()) {
+    fun prepareGame(mode: GameMode, config: GameConfig = GameConfig(), players: List<String> = emptyList()) {
         viewModelScope.launch {
             val result: PoolResult = mode.buildPool(dao, config)
+            val resolvedDeck = resolveRandomTargets(result.deck, players)
             if (result.shortfalls.isNotEmpty()) {
-                pendingDeck = result.deck
+                pendingDeck = resolvedDeck
                 _pendingShortfalls.value = result.shortfalls
             } else {
-                beginWith(result.deck)
+                beginWith(resolvedDeck)
             }
+        }
+    }
+
+    // Replace a card's "Random" target with a randomly chosen player.
+    private fun resolveRandomTargets(deck: List<Card>, players: List<String>): List<Card> {
+        if (players.isEmpty()) return deck
+        return deck.map { card ->
+            if (card.target == "Random") card.copy(target = players.random())
+            else card
         }
     }
 

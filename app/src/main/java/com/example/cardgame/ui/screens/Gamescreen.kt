@@ -140,6 +140,13 @@ fun GameScreen(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
+            if (display != null && !display.isError) {
+                Text(
+                    text = "Target: ${display.target}",
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(textTopAnchor - categoryTopPadding - 30.dp))
             display?.lines?.forEach { line ->
                 Text(

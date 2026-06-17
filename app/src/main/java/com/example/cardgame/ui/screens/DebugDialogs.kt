@@ -1,6 +1,7 @@
 package com.example.cardgame.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,13 +9,31 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,7 +58,6 @@ fun DebugMenuDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-                // Tap Zone Toggle
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -75,23 +93,127 @@ fun DebugMenuDialog(
     )
 }
 
-// Card List
+// Card List (with filters)
 
 @Composable
 fun DebugCardListDialog(cards: List<Card>, onDismiss: () -> Unit) {
+
+    var categoryFilter by remember { mutableStateOf<String?>(null) }   // null = all
+    var playedFilter by remember { mutableStateOf(0) }                 // 0 = all, 1 = used, 2 = unused
+    var sortAscending by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showSearch by remember { mutableStateOf(false) }
+
+    val categories = remember(cards) { cards.map { it.category }.distinct().sorted() }
+
+    val filtered = cards
+        .filter { categoryFilter == null || it.category == categoryFilter }
+        .filter {
+            when (playedFilter) {
+                1 -> it.isUsed
+                2 -> !it.isUsed
+                else -> true
+            }
+        }
+        .filter {
+            if (searchQuery.isBlank()) true
+            else {
+                val q = searchQuery.trim().lowercase()
+                it.id.toString().contains(q) ||
+                        it.category.lowercase().contains(q) ||
+                        it.target.lowercase().contains(q) ||
+                        it.details.lowercase().contains(q)
+            }
+        }
+        .let { list ->
+            if (sortAscending) list.sortedBy { it.target.lowercase() }
+            else list.sortedByDescending { it.target.lowercase() }
+        }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("All cards (${cards.size})") },
+        title = { Text("Cards (${filtered.size}/${cards.size})") },
         text = {
-            LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                items(cards) { card ->
-                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                        Text("ID: ${card.id}  |  ${card.category}")
-                        Text("Target: ${card.target}")
-                        Text(card.details)
-                        Text("Plays: ${card.useCount}  |  Used: ${card.isUsed}", color = Color.Gray)
+            Column {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box {
+                        IconButton(onClick = { showCategoryMenu = true }) {
+                            Icon(Icons.Default.List, contentDescription = "Category filter")
+                        }
+                        DropdownMenu(
+                            expanded = showCategoryMenu,
+                            onDismissRequest = { showCategoryMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("All categories") },
+                                onClick = { categoryFilter = null; showCategoryMenu = false }
+                            )
+                            categories.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat) },
+                                    onClick = { categoryFilter = cat; showCategoryMenu = false }
+                                )
+                            }
+                        }
                     }
-                    HorizontalDivider()
+
+                    IconButton(onClick = { playedFilter = (playedFilter + 1) % 3 }) {
+                        when (playedFilter) {
+                            1 -> Icon(Icons.Default.Done, contentDescription = "Used only")
+                            2 -> Icon(Icons.Default.Clear, contentDescription = "Unused only")
+                            else -> Icon(Icons.Default.List, contentDescription = "All cards")
+                        }
+                    }
+
+                    IconButton(onClick = { sortAscending = !sortAscending }) {
+                        if (sortAscending) Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Sort ascending")
+                        else Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Sort descending")
+                    }
+
+                    IconButton(onClick = { showSearch = !showSearch }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+
+                    IconButton(onClick = {
+                        categoryFilter = null
+                        playedFilter = 0
+                        sortAscending = true
+                        searchQuery = ""
+                        showSearch = false
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Reset filters")
+                    }
+                }
+
+                if (showSearch) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Search id, category, target, text") }
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                    items(filtered) { card ->
+                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                            Text("ID: ${card.id}  |  ${card.category}")
+                            Text("Target: ${card.target}")
+                            Text(card.details)
+                            Text("Plays: ${card.useCount}  |  Used: ${card.isUsed}", color = Color.Gray)
+                        }
+                        HorizontalDivider()
+                    }
                 }
             }
         },

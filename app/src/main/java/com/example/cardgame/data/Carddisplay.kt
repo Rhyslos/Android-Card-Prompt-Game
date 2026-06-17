@@ -15,11 +15,12 @@ private data class TwoTruthsDetail(val truth1: String, val truth2: String, val l
 private data class WouldILieDetail(val wingman: String, val isTrue: String, val story: String)
 
 // Display Model
-// What the game screen actually renders: a list of text lines for a card.
 
 data class CardDisplay(
     val category: String,
-    val lines: List<String>
+    val target: String,
+    val lines: List<String>,
+    val isError: Boolean = false
 )
 
 // Parser
@@ -29,30 +30,44 @@ private val detailParser = Json { ignoreUnknownKeys = true }
 private const val targetToken = "@TargetName"
 
 fun Card.toDisplay(): CardDisplay {
-    return when (category) {
-        "Two Truths & A Lie" -> {
-            val d = detailParser.decodeFromString<TwoTruthsDetail>(details)
-            val shuffled = listOf(d.truth1, d.truth2, d.lie)
-                .map { it.replaceTarget(target) }
-                .shuffled()
-            CardDisplay(category, shuffled)
-        }
+    return try {
+        when (category) {
+            "Two Truths & A Lie" -> {
+                val d = detailParser.decodeFromString<TwoTruthsDetail>(details)
+                val shuffled = listOf(d.truth1, d.truth2, d.lie)
+                    .map { it.replaceTarget(target) }
+                    .shuffled()
+                CardDisplay(category, target, shuffled)
+            }
 
-        "Would I Lie To You" -> {
-            val d = detailParser.decodeFromString<WouldILieDetail>(details)
-            CardDisplay(
-                category,
-                listOf(
-                    d.story.replaceTarget(target),
-                    "Wingman: ${d.wingman}"
+            "Would I Lie To You" -> {
+                val d = detailParser.decodeFromString<WouldILieDetail>(details)
+                CardDisplay(
+                    category,
+                    target,
+                    listOf(
+                        d.story.replaceTarget(target),
+                        "Wingman: ${d.wingman}"
+                    )
                 )
-            )
-        }
+            }
 
-        else -> {
-            val d = detailParser.decodeFromString<TextDetail>(details)
-            CardDisplay(category, listOf(d.text.replaceTarget(target)))
+            else -> {
+                val d = detailParser.decodeFromString<TextDetail>(details)
+                CardDisplay(category, target, listOf(d.text.replaceTarget(target)))
+            }
         }
+    } catch (e: Exception) {
+        CardDisplay(
+            category = category,
+            target = target,
+            lines = listOf(
+                "Card couldn't be read.",
+                "Bad card ID: $id",
+                "Tap to skip."
+            ),
+            isError = true
+        )
     }
 }
 

@@ -134,7 +134,7 @@ class MainActivity : ComponentActivity() {
                                         .padding(top = 64.dp),
                                     onGameModeSelected = { mode ->
                                         when (mode.configType) {
-                                            ConfigType.NONE -> gameViewModel.prepareGame(mode)
+                                            ConfigType.NONE -> gameViewModel.prepareGame(mode, players = playerPrefs.getNames())
                                             else -> configMode = mode
                                         }
                                     }
@@ -192,7 +192,8 @@ class MainActivity : ComponentActivity() {
                                             gamePrefs.saveEnabledCategories(activeConfigMode.name, enabled)
                                             gameViewModel.prepareGame(
                                                 activeConfigMode,
-                                                GameConfig(allowedCategories = enabled)
+                                                GameConfig(allowedCategories = enabled),
+                                                players = playerPrefs.getNames()
                                             )
                                             configMode = null
                                         },
@@ -217,7 +218,8 @@ class MainActivity : ComponentActivity() {
                                                     allowedCategories = enabled,
                                                     weights = weights,
                                                     deckSize = deckSize
-                                                )
+                                                ),
+                                                players = playerPrefs.getNames()
                                             )
                                             configMode = null
                                         },
